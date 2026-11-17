@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SR24•4 Bench Companion</title>
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SR24 Bench">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<style>{{fonts}}</style>
+<style>
+:root{
+  color-scheme: light;
+  --panel:#E3E5E6; --surface:#F6F7F7; --raised:#FFFFFF; --ink:#16181A; --muted:#565C61; --line:#C8CCCF;
+  --mag:#A8235A; --mag-soft:#F6DFE8; --blue:#2C5A84; --blue-soft:#DDE8F2; --red:#BE2A22; --red-soft:#F8E0DD;
+  --green:#2B7F40; --green-soft:#DDF0E2; --strip:#2A2D30;
+  --fh:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --fb:"Barlow","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --panel:#1C1F22; --surface:#25292D; --raised:#2E3338; --ink:#ECEEEF; --muted:#A4ABB1; --line:#41474D;
+    --mag:#E8639A; --mag-soft:#4A2232; --blue:#86AFD6; --blue-soft:#1F3347; --red:#F06A5F; --red-soft:#4A2320;
+    --green:#62C27D; --green-soft:#1E3A26; --strip:#121416;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --panel:#1C1F22; --surface:#25292D; --raised:#2E3338; --ink:#ECEEEF; --muted:#A4ABB1; --line:#41474D;
+  --mag:#E8639A; --mag-soft:#4A2232; --blue:#86AFD6; --blue-soft:#1F3347; --red:#F06A5F; --red-soft:#4A2320;
+  --green:#62C27D; --green-soft:#1E3A26; --strip:#121416;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--panel);color:var(--ink);font-family:var(--fb);font-size:17px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--strip)}
+h1,h2,h3{font-family:var(--fh);font-weight:600;line-height:1.1;margin:0}
+h2{font-size:30px;margin:2px 0 8px}
+h3{font-size:22px;margin:0 0 8px}
+p{margin:0 0 10px}
+button{font:inherit;color:inherit}
+a{color:var(--blue)}
+:focus-visible{outline:3px solid var(--mag);outline-offset:2px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--strip);color:#E8EAEB;padding:10px 14px 9px;display:flex;align-items:center;gap:10px}
+.top h1{font-size:21px;white-space:nowrap}
+.top .where{font-size:14px;color:#AEB4B9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:right}
+main{max-width:640px;margin:0 auto;padding:16px 14px 120px}
+.view{display:none}.view.on{display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 14px}
+.card.warn{border-color:var(--red);background:var(--red-soft)}
+.card.ok{border-color:var(--green);background:var(--green-soft)}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--strip);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+nav.tabs a{color:#AEB4B9;text-decoration:none;text-align:center;font-family:var(--fh);font-size:15px;font-weight:600;padding:6px 2px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a[aria-current="page"]{color:#fff;background:#3A3F44}
+nav.tabs a[aria-current="page"] svg{color:#F08BB3}
+/* fader strips */
+.strips{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;background:var(--strip);padding:10px 8px 8px;border-radius:12px;margin-bottom:14px}
+.strip{appearance:none;border:0;background:#3A3F44;border-radius:4px;height:96px;position:relative;cursor:pointer;padding:0;overflow:hidden}
+.strip .fill{position:absolute;left:0;right:0;bottom:0;background:#4E8F5E;transition:height .4s}
+.strip .cap{position:absolute;left:1px;right:1px;height:9px;border-radius:2px;background:#E8639A;transition:bottom .4s}
+.strip .num{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-family:var(--fh);font-size:12px;color:#fff;font-weight:600}
+.strip.off{opacity:.25}
+.strip.sel{outline:2px solid #fff;outline-offset:1px}
+.strip-legend{display:flex;justify-content:space-between;color:#AEB4B9;font-size:12px;margin-top:6px;grid-column:1/-1}
+/* buttons */
+.big{appearance:none;display:block;width:100%;text-align:left;border:0;border-radius:12px;background:var(--mag);color:#fff;padding:16px 18px;cursor:pointer;margin-bottom:10px}
+.big b{display:block;font-family:var(--fh);font-size:24px;font-weight:600;line-height:1.15}
+.big span{font-size:15px;opacity:.92}
+.big.alt{background:var(--raised);color:var(--ink);border:1px solid var(--line)}
+.btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--panel);border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;min-height:46px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.chip{appearance:none;border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:7px 13px;font-size:15px;cursor:pointer;min-height:40px}
+.chip[aria-pressed="true"]{background:var(--mag);border-color:var(--mag);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{appearance:none;border:0;background:var(--raised);padding:9px 13px;font-size:15px;cursor:pointer;min-height:42px}
+.seg button[aria-pressed="true"]{background:var(--blue);color:#fff}
+.pill{display:inline-block;font-size:13px;font-weight:600;padding:3px 9px;border-radius:999px;vertical-align:middle}
+.pill.r{background:var(--red-soft);color:var(--red)}.pill.g{background:var(--green-soft);color:var(--green)}.pill.b{background:var(--blue-soft);color:var(--blue)}.pill.m{background:var(--mag-soft);color:var(--mag)}
+/* part chips */
+.d{appearance:none;border:0;cursor:pointer;font-family:var(--fh);font-weight:600;font-size:1.04em;background:var(--blue-soft);color:var(--blue);padding:0 5px;border-radius:5px;white-space:nowrap;line-height:1.35}
+.d.t{background:var(--mag-soft);color:var(--mag)}
+/* focus step */
+.stephead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 12px}
+.dots i{width:22px;height:6px;border-radius:3px;background:var(--line)}
+.dots i.done{background:var(--green)}.dots i.now{background:var(--mag)}
+.scene-wrap{background:#123826;border-radius:12px;overflow:hidden;margin:0 0 12px;position:relative}
+.scene-wrap svg{display:block;width:100%;height:auto}
+.scene-tools{display:flex;justify-content:flex-end;gap:6px;padding:6px 8px;background:#123826}
+.scene-tools:empty{display:none}
+.scene-tools button{appearance:none;border:0;background:rgba(0,0,0,.55);color:#fff;border-radius:8px;min-height:38px;padding:6px 10px;font-size:14px;cursor:pointer}
+.steptitle{font-family:var(--fh);font-size:30px;font-weight:600;line-height:1.1;margin:2px 0 6px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.do{list-style:none;padding:0;margin:0 0 12px;counter-reset:d}
+.do li{counter-increment:d;position:relative;padding:8px 0 8px 38px;border-top:1px solid var(--line)}
+.do li:first-child{border-top:0}
+.do li::before{content:counter(d);position:absolute;left:0;top:8px;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--panel);font-family:var(--fh);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center}
+.check{background:var(--blue-soft);color:var(--ink);border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:16px}
+.check b{color:var(--blue)}
+.warnbox{background:var(--red-soft);border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:16px}
+.warnbox b{color:var(--red)}
+details{border-top:1px solid var(--line);padding:10px 0}
+summary{cursor:pointer;font-weight:600;min-height:34px;color:var(--blue)}
+.actionbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:24;padding:8px 14px;background:linear-gradient(to top,var(--panel) 70%,transparent)}
+.actionbar .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:auto 1fr;gap:8px}
+.actionbar .go{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font-family:var(--fh);font-size:22px;font-weight:600;min-height:56px;cursor:pointer}
+.actionbar .go.undo{background:var(--raised);color:var(--ink);border:1px solid var(--line)}
+.actionbar .back{appearance:none;border:1px solid var(--line);background:var(--raised);border-radius:12px;min-width:56px;min-height:56px;font-size:22px;cursor:pointer}
+/* sheet */
+.sheet{position:fixed;inset:0;z-index:60;display:none;background:rgba(0,0,0,.45);align-items:flex-end}
+.sheet.on{display:flex}
+.sheet .box{background:var(--surface);width:100%;max-width:640px;margin:0 auto;border-radius:16px 16px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:80vh;overflow:auto}
+.sheet .box h3{font-size:26px}
+/* viewer */
+.viewer{position:fixed;inset:0;z-index:70;background:rgba(10,11,12,.95);display:none;flex-direction:column}
+.viewer.on{display:flex}
+.viewer .bar{display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;color:#fff}
+.viewer .bar span{flex:1;font-family:var(--fh);font-size:18px}
+.viewer .bar button{appearance:none;border:1px solid #555;background:#222;color:#fff;border-radius:8px;min-width:46px;min-height:46px;font-size:18px;cursor:pointer}
+.viewer .pane{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.viewer .pane img{display:block;background:#fff}
+.viewer .hint{color:#ccc;font-size:14px;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+/* learn */
+.sym{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.sym:first-of-type{border-top:0}
+.sym svg{width:96px;height:60px;background:var(--raised);border:1px solid var(--line);border-radius:8px}
+.sym b{font-family:var(--fh);font-size:20px;font-weight:600;display:block}
+.fig{margin:0 0 16px}
+.fig .imgbtn{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0;width:100%;overflow:hidden;cursor:zoom-in;display:block}
+.fig img{display:block;width:100%;height:auto}
+.fig figcaption{font-size:15px;color:var(--muted);margin-top:6px}
+.hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;background:#fff}
+.hscroll img{width:1300px;max-width:none;display:block}
+.mod{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:14px 0;border-top:1px solid var(--line)}
+.mod:first-of-type{border-top:0}
+.mod input{width:28px;height:28px;accent-color:var(--mag);margin:2px 0 0}
+.mod b{font-family:var(--fh);font-size:21px;font-weight:600;display:block;line-height:1.15}
+.mod .opts{grid-column:2;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:14px}
+.tw{overflow-x:auto}
+.safe li{list-style:none;display:grid;grid-template-columns:34px 1fr;gap:10px;padding:10px 0;border-top:1px solid rgba(0,0,0,.08)}
+.safe{padding:0;margin:0}
+.safe input{width:28px;height:28px;accent-color:var(--green);margin:0}
+input[type=number]{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--raised);color:var(--ink);min-height:46px}
+.out{font-family:var(--fh);font-size:30px;font-weight:600;margin:10px 0 4px}
+.done-msg{text-align:center;padding:24px 10px}
+.done-msg .n{font-family:var(--fh);font-size:64px;font-weight:700;line-height:1;color:var(--green)}
+
+/* ---------- scene animation ---------- */
+.scene .draw{stroke-dasharray:1;stroke-dashoffset:0;animation:draw 5s ease-in-out infinite}
+@keyframes draw{0%,22%{stroke-dashoffset:1}62%,100%{stroke-dashoffset:0}}
+.scene .iron{animation:ironin 5s ease-in-out infinite}
+@keyframes ironin{0%{transform:translate(70px,-70px);opacity:0}12%{opacity:1}26%,58%{transform:translate(0,0);opacity:1}76%,100%{transform:translate(70px,-70px);opacity:0}}
+.scene .iron2{animation:ironin2 5s ease-in-out infinite}
+@keyframes ironin2{0%,40%{transform:translate(70px,-70px);opacity:0}52%{opacity:1}62%,82%{transform:translate(0,0);opacity:1}96%,100%{transform:translate(70px,-70px);opacity:0}}
+.scene .hot{animation:hot 5s ease-in-out infinite}
+@keyframes hot{0%,26%{opacity:0}34%,56%{opacity:.85}66%,100%{opacity:0}}
+.scene .blob{transform-box:fill-box;transform-origin:center;animation:blob 5s ease-out infinite}
+@keyframes blob{0%,48%{opacity:0;transform:scale(.2)}58%,100%{opacity:1;transform:scale(1)}}
+.scene .blob2{transform-box:fill-box;transform-origin:center;animation:blob2 5s ease-out infinite}
+@keyframes blob2{0%,74%{opacity:0;transform:scale(.2)}84%,100%{opacity:1;transform:scale(1)}}
+.scene .gone{opacity:0;animation:gone 5s ease-in-out infinite}
+@keyframes gone{0%,34%{opacity:1;transform:translate(0,0) rotate(0)}62%,100%{opacity:0;transform:translate(10px,-26px) rotate(-18deg)}}
+.scene .ghost{opacity:.35;stroke-dasharray:3 3}
+.scene .appear{animation:appear 5s ease-in-out infinite}
+@keyframes appear{0%,55%{opacity:0}65%,100%{opacity:1}}
+.scene .appear2{animation:appear2 5s ease-in-out infinite}
+@keyframes appear2{0%,72%{opacity:0}80%,100%{opacity:1}}
+.scene .drop{animation:drop 5s ease-in-out infinite}
+@keyframes drop{0%,12%{transform:translate(0,-46px);opacity:0}22%{opacity:1}44%,100%{transform:translate(0,0);opacity:1}}
+.scene .dropLate{animation:dropLate 5s ease-in-out infinite}
+@keyframes dropLate{0%,46%{transform:translate(0,-50px);opacity:0}56%{opacity:1}74%,100%{transform:translate(0,0);opacity:1}}
+.scene .riseOut{opacity:0;animation:riseOut 5s ease-in-out infinite}
+@keyframes riseOut{0%,18%{transform:translate(0,0);opacity:1}42%,100%{transform:translate(0,-50px);opacity:0}}
+.scene .slideIn{animation:slideIn 5s ease-in-out infinite}
+@keyframes slideIn{0%,15%{transform:translate(60px,0);opacity:0}25%{opacity:1}45%,100%{transform:translate(0,0);opacity:1}}
+.scene .scan{transform:translateX(52px);animation:scan 5s ease-in-out infinite}
+@keyframes scan{0%,12%{transform:translateX(0)}28%{transform:translateX(26px)}44%,100%{transform:translateX(52px)}}
+.scene .beep{animation:beep 5s ease-in-out infinite}
+@keyframes beep{0%,44%{opacity:0}48%,100%{opacity:1}}
+.scene .tilt{transform-box:fill-box;transform-origin:0% 100%;transform:rotate(-32deg);animation:tilt 5s ease-in-out infinite}
+@keyframes tilt{0%,30%{transform:rotate(0)}52%,100%{transform:rotate(-32deg)}}
+.scene .knife4{opacity:0;animation:knife4 5s ease-in-out infinite}
+@keyframes knife4{0%{opacity:0;transform:translate(0,-22px)}6%{opacity:1}12%{transform:translate(0,0)}18%{transform:translate(0,-16px)}22%{transform:translate(9px,-16px)}28%{transform:translate(9px,0)}34%{transform:translate(9px,-16px)}38%{transform:translate(0,16px)}44%{transform:translate(0,32px)}50%{transform:translate(0,16px)}54%{transform:translate(9px,16px)}60%{transform:translate(9px,32px)}66%{transform:translate(9px,10px);opacity:1}72%,100%{opacity:0;transform:translate(9px,10px)}}
+.scene .cutA{animation:cutA 5s steps(1) infinite}@keyframes cutA{0%,12%{opacity:0}13%,100%{opacity:1}}
+.scene .cutB{animation:cutB 5s steps(1) infinite}@keyframes cutB{0%,28%{opacity:0}29%,100%{opacity:1}}
+.scene .cutC{animation:cutC 5s steps(1) infinite}@keyframes cutC{0%,44%{opacity:0}45%,100%{opacity:1}}
+.scene .cutD{animation:cutD 5s steps(1) infinite}@keyframes cutD{0%,60%{opacity:0}61%,100%{opacity:1}}
+.scene .sliver{opacity:0;animation:sliver 5s ease-in-out infinite}@keyframes sliver{0%,66%{opacity:1}80%,100%{opacity:0}}
+.scene .stA{opacity:0;animation:stA 5s steps(1) infinite}@keyframes stA{0%{opacity:1}33%,100%{opacity:0}}
+.scene .stB{opacity:0;animation:stB 5s steps(1) infinite}@keyframes stB{0%{opacity:0}33%{opacity:1}66%,100%{opacity:0}}
+.scene .stC{opacity:1;animation:stC 5s steps(1) infinite}@keyframes stC{0%{opacity:0}66%,100%{opacity:1}}
+.scene .drill{animation:drill 5s ease-in-out infinite}
+@keyframes drill{0%{transform:translate(0,0)}20%{transform:translate(0,0)}25%{transform:translate(170px,0)}45%{transform:translate(170px,0)}50%{transform:translate(170px,56px)}70%{transform:translate(170px,56px)}75%{transform:translate(0,56px)}95%,100%{transform:translate(0,56px)}}
+.scene .h1{animation:h1 5s steps(1) infinite}@keyframes h1{0%,12%{opacity:0}13%,100%{opacity:1}}
+.scene .h2{animation:h2 5s steps(1) infinite}@keyframes h2{0%,37%{opacity:0}38%,100%{opacity:1}}
+.scene .h3{animation:h3 5s steps(1) infinite}@keyframes h3{0%,62%{opacity:0}63%,100%{opacity:1}}
+.scene .h4{animation:h4 5s steps(1) infinite}@keyframes h4{0%,87%{opacity:0}88%,100%{opacity:1}}
+.scene .drill2{animation:drill2 5s ease-in-out infinite}
+@keyframes drill2{0%,35%{transform:translate(0,0)}45%,100%{transform:translate(170px,0)}}
+.scene .h2b{animation:h2b 5s steps(1) infinite}@keyframes h2b{0%,55%{opacity:0}56%,100%{opacity:1}}
+.scene .pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.paused .scene *{animation-play-state:paused!important}
+.still .scene *{animation:none!important}
+.still .scene .iron,.still .scene .iron2,.still .scene .drill,.still .scene .drill2{display:none}
+@media (prefers-reduced-motion: reduce){.scene *{animation:none!important}.scene .iron,.scene .iron2,.scene .drill,.scene .drill2{display:none}.strip .fill,.strip .cap{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><h1>SR24•4 bench</h1><div class="where" id="where"></div></header>
+<main>
+
+<!-- TODAY -->
+<section class="view" id="v-today" aria-labelledby="h-today">
+  <h2 id="h-today">Today</h2>
+  <div id="todaySafety"></div>
+  <div id="todayNext"></div>
+  <div class="strips" id="todayStrips" aria-label="Channel progress. Tap a channel to work on it."></div>
+  <div id="todayExtra"></div>
+</section>
+
+<!-- STEP -->
+<section class="view" id="v-step" aria-labelledby="h-step">
+  <div class="row" style="justify-content:space-between;margin-bottom:6px">
+    <h2 id="h-step" style="margin:0">Step by step</h2>
+    <button class="chip" id="pickCh">Change channel</button>
+  </div>
+  <div id="stepBody"></div>
+</section>
+
+<!-- LEARN -->
+<section class="view" id="v-learn" aria-labelledby="h-learn">
+  <h2 id="h-learn">Learn the diagrams</h2>
+  <p class="small muted">Short and visual. Tap a section to open it.</p>
+  <div class="card">
+    <details open><summary>Part names in 30 seconds</summary>
+      <p class="small" style="margin-top:8px">Every part has a letter plus a number. The letter says what it is. The number tells you the channel.</p>
+      <div class="tw"><table>
+        <tr><th>Letter</th><th>Part</th><th>Looks like</th></tr>
+        <tr><td><b>R</b></td><td>Resistor</td><td>Tiny black block (SMD) or a striped bead</td></tr>
+        <tr><td><b>C</b></td><td>Capacitor</td><td>Round can with a stripe on the minus side</td></tr>
+        <tr><td><b>U</b></td><td>Chip (op-amp)</td><td>Black rectangle with legs on two sides</td></tr>
+        <tr><td><b>Q</b></td><td>Transistor</td><td>Small 3-leg part</td></tr>
+        <tr><td><b>J</b></td><td>Jack or connector</td><td>The sockets you plug cables into</td></tr>
+        <tr><td><b>E</b></td><td>Test point or link pin</td><td>Small square pad or pin</td></tr>
+        <tr><td><b>SW</b></td><td>Switch</td><td>Push buttons</td></tr>
+      </table></div>
+      <div class="check" style="margin-top:12px"><b>The number trick.</b> The channel number comes first, then two fixed digits. <b>R162</b> is resistor 62 on channel 1. On channel 7 the same part is <b>R762</b>. On channel 18 it’s <b>R1862</b>. The app fills these in for you.</div>
+    </details>
+    <details><summary>Schematic symbols you’ll meet</summary><div id="symList" style="margin-top:6px"></div></details>
+    <details><summary>Schematic vs board picture</summary>
+      <p class="small" style="margin-top:8px">A <b>schematic</b> is a map of connections. Parts are drawn as symbols and placed wherever reads clearly, not where they sit on the board.</p>
+      <p class="small">A <b>board layout</b> shows where parts physically sit. Use the schematic to understand <i>why</i>, and the layout or your meter to find <i>where</i>.</p>
+      <p class="small">When in doubt, your meter’s beep mode is the truth: if two points beep, they’re connected.</p>
+    </details>
+    <details><summary>How the channel signal flows</summary><div id="flowSvg" style="margin-top:8px;background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:8px"></div>
+      <p class="small muted" style="margin-top:8px">Tap A and Tap B are the two places a direct out can come from. Mute sits before the EQ, so both follow your mutes.</p></details>
+  </div>
+  <div class="card">
+    <h3>Real board and schematic images</h3>
+    <p class="small muted">Tap an image to open it full screen and zoom.</p>
+    <div id="figList"></div>
+  </div>
+  <div class="card">
+    <details><summary>Extras: headroom and capacitor maths</summary>
+      <div style="margin-top:8px">
+        <p class="small">The channel clips near +20 dBu. Enter your interface’s maximum line input:</p>
+        <input type="number" id="ifMax" value="20" step="0.5" inputmode="decimal" aria-label="Interface maximum input in dBu">
+        <div id="hrOut"></div>
+        <p class="small" style="margin-top:14px">Low-end roll-off of a coupling cap: <span id="rcOut" class="pill b"></span></p>
+        <div class="row"><input type="number" id="rcC" value="47" step="any" inputmode="decimal" aria-label="Capacitor in microfarads" style="flex:1"><span>µF into</span><input type="number" id="rcR" value="4700" step="any" inputmode="decimal" aria-label="Load in ohms" style="flex:1"><span>Ω</span></div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- PLAN -->
+<section class="view" id="v-plan" aria-labelledby="h-plan">
+  <h2 id="h-plan">Plan</h2>
+  <p class="small muted">Choose what you’re building. Everything else in the app follows these choices.</p>
+  <div class="card"><h3>1. Mods</h3><div id="modList"></div></div>
+  <div class="card"><h3>2. Channels</h3>
+    <div class="row" id="chanChips"></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" data-preset="mine">My layout</button><button class="btn ghost" data-preset="drums">RD-9 only</button><button class="btn ghost" data-preset="all">All 20</button></div>
+  </div>
+  <div class="card"><h3>3. Work order</h3>
+    <div class="seg" role="group" aria-label="Work order"><button data-order="chan">One channel at a time</button><button data-order="line">Same step, all channels</button></div>
+    <p class="small muted" style="margin-top:8px">Tip: finish and test one whole channel first. Then switch to “same step, all channels” to move faster.</p>
+  </div>
+  <div class="card"><h3>4. Shopping list</h3><p class="small muted" id="partsNote"></p><div class="tw"><table id="partsTable"></table></div></div>
+  <div class="card"><h3>Display</h3>
+    <div class="seg" role="group" aria-label="Animations"><button data-anim="on">Animations on</button><button data-anim="off">Still pictures</button></div>
+  </div>
+</section>
+
+<!-- SAFETY -->
+<section class="view" id="v-safety" aria-labelledby="h-safe">
+  <h2 id="h-safe">Safety check</h2>
+  <p class="small">Do this every day before opening the console. Six ticks and you’re clear.</p>
+  <div class="scene-wrap" id="bleedScene"></div>
+  <div class="card warn"><ul class="safe" id="safeList"></ul></div>
+  <div class="card">
+    <h3>The caps that bite</h3>
+    <p class="small">Bleed these four on the power supply board. <button class="d t" data-fig="schPsu">Show me</button></p>
+    <div class="tw"><table>
+      <tr><td><b>C6</b></td><td>1,000 µF / 100 V</td><td>Highest voltage</td></tr>
+      <tr><td><b>C5</b></td><td>100 µF / 100 V</td><td>+48 V phantom</td></tr>
+      <tr><td><b>C1, C2</b></td><td>6,800 µF / 35 V</td><td>Big current</td></tr>
+      <tr><td><b>C7</b></td><td>6,800 µF / 35 V</td><td>Big current</td></tr>
+    </table></div>
+  </div>
+  <button class="btn ghost" id="resetAll">Reset all progress</button>
+</section>
+</main>
+
+<div class="actionbar" id="actionbar" style="display:none"><div class="in"><button class="back" id="aBack" aria-label="Previous step">‹</button><button class="go" id="aGo">Done, next step</button></div></div>
+
+<nav class="tabs" aria-label="Sections">
+  <a href="#today" data-v="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="12" width="4" height="3" rx="1"/><rect x="10" y="7" width="4" height="3" rx="1"/><rect x="16" y="14" width="4" height="3" rx="1"/></svg>Today</a>
+  <a href="#step" data-v="step"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l7-7"/><path d="M11 13l3-3 6 6-3 3z"/><path d="M14 10l2-6 4 4-6 2"/></svg>Step</a>
+  <a href="#learn" data-v="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/></svg>Learn</a>
+  <a href="#plan" data-v="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Plan</a>
+  <a href="#safety" data-v="safety"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Safety</a>
+</nav>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle"><div class="box"><h3 id="shTitle"></h3><div id="shBody"></div><button class="btn" id="shClose" style="width:100%;margin-top:12px">Close</button></div></div>
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <div class="bar"><span id="vTitle"></span><button id="vOut" aria-label="Zoom out">−</button><button id="vIn" aria-label="Zoom in">+</button><button id="vClose" aria-label="Close">✕</button></div>
+  <div class="pane" id="vPane"><img id="vImg" alt=""></div>
+  <div class="hint" id="vHint"></div>
+</div>
+
+<script>
+const IMG = {pcbMain:"{{img0}}", pcbJack:"{{img1}}", schEq:"{{img2}}", schInsert:"{{img3}}", schJack:"{{img4}}", schStereo:"{{img5}}", schPsu:"{{img6}}", block:"{{img7}}"};
+const FIGS = [
+  {id:"pcbJack", title:"Jack board (one channel)", cap:"Channel 3 shown. Insert jack, R362 and the link-pin row."},
+  {id:"pcbMain", title:"Main board (one channel row)", cap:"Channel 7 shown. Swipe sideways. Pink = parts you solder to."},
+  {id:"schJack", title:"Insert jack contacts", cap:"The five jack contacts. Pins 2 and 3 are the ones you cut."},
+  {id:"schInsert", title:"Insert, lo cut and mute", cap:"Where the insert send and return cross between boards."},
+  {id:"schEq", title:"EQ, fader and taps", cap:"Tap A (E107), Tap B (C110), R136, E114, E115."},
+  {id:"schStereo", title:"Stereo channel 21-22", cap:"Taps for Mod 3."},
+  {id:"schPsu", title:"Power supply", cap:"Red = caps to bleed."},
+  {id:"block", title:"Whole-console block diagram", cap:"The big picture. Zoom in."}
+];
+
+/* ---------- state ---------- */
+const S = (()=>{ try{ return JSON.parse(localStorage.getItem("sr24bench2")||"{}"); }catch(e){ return {}; } })();
+function save(){ try{ localStorage.setItem("sr24bench2", JSON.stringify(S)); }catch(e){} }
+S.mods = S.mods || {m0:true, m1:true, m2:false, m3:false, m4:false, m5:false};
+S.opts = Object.assign({tap:"B", bal:true, m3out:"jacks", order:"chan", anim:"on"}, S.opts||{});
+S.chans = S.chans || [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18,19,20];
+S.done = S.done || {}; S.have = S.have || {}; S.safe = S.safe || {};
+S.ch = S.ch || 1; S.mode = S.mode || "chan";
+const today = new Date().toISOString().slice(0,10);
+if(S.safe.date!==today) S.safe = {date:today};
+
+/* ---------- part chips + glossary ---------- */
+const ROLE = {"62":"Insert send resistor, 120 Ω. Becomes your build-out resistor.","10":"Output capacitor after the fader stage. Tap B.","39":"Capacitor feeding the fader. Tap A sits just after it.","41":"Insert return capacitor.","36":"10 kΩ resistor feeding the aux 1–2 pre send.","07":"Test point at the fader top. Tap A.","14":"Test point at the EQ output.","15":"Test point on channel ground.","12":"Test point at the EQ input.","02A":"Link pin carrying the insert send between boards.","02F":"Link pin carrying the insert return between boards.","02":"Insert jack.","03":"Line input jack.","01":"XLR mic input.","04":"Chip: EQ stages.","19":"Capacitor after the fader wiper.","42":"Capacitor into the EQ.","17":"Capacitor after the low-cut filter.","12c":"Line input capacitor."};
+const KIND = {R:"Resistor",C:"Capacitor",U:"Chip (op-amp)",J:"Jack",E:"Test point or link pin",SW:"Switch",Q:"Transistor",Z:"Ground link"};
+function P(name, target){ return `<button class="d${target?" t":""}" data-part="${name}">${name}</button>`; }
+function partInfo(name){
+  const m = name.match(/^(SW|[A-Z])(\d+?)(\d{2}[A-F]?)$/);
+  let kind="Part", role="";
+  if(m){ kind = KIND[m[1]]||"Part"; const suf=m[3]; role = ROLE[suf] || ""; if(m[1]==="C"&&suf==="12") role="Line input capacitor."; if(m[1]==="E"&&suf==="12") role=ROLE["12"]; if(m[1]==="J"&&suf==="02") role="Insert jack (gets turned into the direct out)."; }
+  const ch = m ? m[2] : "";
+  return {kind, role, ch};
+}
+function openPart(name){
+  const i = partInfo(name);
+  let look = i.kind==="Capacitor" ? "Round can. The stripe on its side marks minus (−). The board print usually shows + or a shaded half for minus." : i.kind==="Resistor" ? "Small black block with a number on it (SMD), or a bead with coloured bands." : i.kind.startsWith("Test") ? "Small square copper pad or a pin. Mackie added these as test points." : i.kind==="Jack" ? "The socket itself. Its five solder tabs are on the underside." : i.kind.startsWith("Chip") ? "Black rectangle with 4 legs each side." : "";
+  sheet(name, `<p><span class="pill b">${i.kind}</span>${i.ch?` <span class="pill m">Channel ${i.ch}</span>`:""}</p>${i.role?`<p>${i.role}</p>`:""}${look?`<p class="small muted">${look}</p>`:""}<p class="small muted">Find it on the board: <button class="d" data-fig="pcbMain">main board</button> <button class="d" data-fig="pcbJack">jack board</button></p>`);
+}
+function sheet(title, html){
+  document.getElementById("shTitle").textContent = title;
+  document.getElementById("shBody").innerHTML = html;
+  document.getElementById("sheet").classList.add("on");
+  document.getElementById("shClose").focus();
+}
+document.getElementById("shClose").onclick=()=>document.getElementById("sheet").classList.remove("on");
+document.getElementById("sheet").onclick=e=>{ if(e.target.id==="sheet") document.getElementById("sheet").classList.remove("on"); };
+document.addEventListener("click", e=>{
+  const p=e.target.closest("[data-part]"); if(p){ openPart(p.dataset.part); return; }
+  const f=e.target.closest("[data-fig]"); if(f){ document.getElementById("sheet").classList.remove("on"); openFig(f.dataset.fig); }
+});
+
+/* ---------- scene primitives (fixed "photo" colours) ---------- */
+const K = {bd:"#1E5A3A", bd2:"#174A30", silk:"#E3EDE4", cu:"#D6A54E", cuD:"#A97C2E", sol:"#D3D8DC", wire:"#F2C14E", wire2:"#F08BB3", red:"#E5463B", txt:"#F4F7F4", hl:"#FF7AB0", cut:"#0E2A1C"};
+const FONT = `font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="600"`;
+const sv = (inner, aria, h=200) => `<svg class="scene" viewBox="0 0 340 ${h}" role="img" aria-label="${aria}"><rect width="340" height="${h}" fill="${K.bd}"/>${inner}</svg>`;
+const txt = (x,y,t,o={}) => `<text x="${x}" y="${y}" ${FONT} font-size="${o.s||13}" fill="${o.c||K.txt}" text-anchor="${o.a||"start"}">${t}</text>`;
+function tag(x,y,t,c=K.hl,dark=false){ const w=t.length*6.6+14; return `<g><rect x="${x}" y="${y-13}" width="${w}" height="19" rx="9.5" fill="${c}"/>${txt(x+7,y+1,t,{c:dark?"#111":"#fff",s:13})}</g>`; }
+const pad = (x,y,r=6) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${K.cu}" stroke="${K.cuD}" stroke-width="1"/><circle cx="${x}" cy="${y}" r="${r*0.38}" fill="${K.bd2}"/>`;
+const sqpad = (x,y,s=11) => `<rect x="${x-s/2}" y="${y-s/2}" width="${s}" height="${s}" rx="1.5" fill="${K.cu}" stroke="${K.cuD}"/><circle cx="${x}" cy="${y}" r="${s*0.18}" fill="${K.bd2}"/>`;
+const trace = (d,w=4) => `<path d="${d}" fill="none" stroke="#2F7A50" stroke-width="${w}" stroke-linecap="round"/>`;
+const blob = (x,y,cls="blob") => `<circle class="${cls}" cx="${x}" cy="${y}" r="5.5" fill="${K.sol}" stroke="#9AA2A8" stroke-width="1"/>`;
+function smd(x,y,label,w=26){ return `<rect x="${x-w/2-5}" y="${y-6}" width="8" height="12" fill="${K.cu}"/><rect x="${x+w/2-3}" y="${y-6}" width="8" height="12" fill="${K.cu}"/><rect x="${x-w/2+1}" y="${y-7}" width="${w-2}" height="14" rx="1.5" fill="#222"/>${label?txt(x,y+24,label,{a:"middle",s:12}):""}`; }
+function bands(x,y,len=56){ const c=["#7B4A2A","#C62828","#111","#111","#7B4A2A"]; let s=`<rect x="${x}" y="${y-8}" width="${len}" height="16" rx="7" fill="#9EC3D9"/>`; c.forEach((cc,i)=>{ s+=`<rect x="${x+8+i*(i===4?10:8)}" y="${y-8}" width="4" height="16" fill="${cc}"/>`; }); return s; }
+function iron(x,y,cls="iron"){ return `<g transform="translate(${x} ${y})"><g class="${cls}"><circle class="hot" r="11" fill="#FF6A3D" opacity="0"/><path d="M0 0 L10 -14 L16 -10 Z" fill="#7C858C"/><rect x="10" y="-48" width="12" height="38" rx="3" transform="rotate(35 16 -10)" fill="#AEB6BC"/><rect x="24" y="-90" width="18" height="46" rx="6" transform="rotate(35 16 -10)" fill="#3A3F44"/></g></g>`; }
+function probe(x,y,col,cls=""){ return `<g transform="translate(${x} ${y})"><g class="${cls}"><path d="M0 0 L-6 -22" stroke="#C9CED3" stroke-width="3" stroke-linecap="round"/><rect x="-16" y="-62" width="12" height="42" rx="5" transform="rotate(-15 -10 -41)" fill="${col}"/></g></g>`; }
+function knife(){ return `<path d="M0 0 L-4 -10 L10 -40 L16 -36 Z" fill="#DADFE3" stroke="#8A9298"/><rect x="9" y="-70" width="10" height="34" rx="3" transform="rotate(22 14 -53)" fill="#E7A33C"/>`; }
+function capTop(x,y,r,label,minusLeft=true){ const sx=minusLeft?x-r:x; return `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${K.silk}" stroke-width="1.6"/><path d="M${x} ${y-r} A${r} ${r} 0 0 ${minusLeft?0:1} ${x} ${y+r} Z" fill="${K.silk}" opacity=".28"/>${txt(minusLeft?x+r-12:x-r+6,y-r+14,"+",{s:15,c:K.silk})}${label?txt(x,y+r+16,label,{a:"middle",s:13}):""}`; }
+function capBody(x,y,label,col="#2B4D8C"){ return `<g><rect x="${x-17}" y="${y-30}" width="34" height="44" rx="5" fill="${col}"/><rect x="${x-17}" y="${y-30}" width="9" height="44" fill="#D9DEE6" opacity=".85"/>${txt(x-12.5,y-4,"−",{s:12,c:"#223",a:"middle"})}<rect x="${x-17}" y="${y-33}" width="34" height="6" rx="3" fill="#BFC6CE"/>${txt(x+5,y+2,label||"",{s:10,a:"middle",c:"#fff"})}<path d="M${x-7} ${y+14} V${y+26} M${x+7} ${y+14} V${y+26}" stroke="#C9CED3" stroke-width="2.5"/></g>`; }
+function meter(x,y,a,b,c){ return `<g transform="translate(${x} ${y})"><rect width="92" height="64" rx="10" fill="#E8B500"/><rect x="8" y="8" width="76" height="28" rx="4" fill="#C9D6B5"/><text class="stA" x="46" y="28" text-anchor="middle" ${FONT} font-size="17" fill="#1B2A12">${a}</text><text class="stB" x="46" y="28" text-anchor="middle" ${FONT} font-size="17" fill="#1B2A12">${b}</text><text class="stC" x="46" y="28" text-anchor="middle" ${FONT} font-size="17" fill="#1B2A12">${c}</text><circle cx="46" cy="50" r="8" fill="#333"/></g>`; }
+const wire = (d,col=K.wire,cls="draw",w=4) => `<path d="${d}" pathLength="1" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" class="${cls}"/>`;
+
+/* ---------- scenes ---------- */
+const SC = {
+  find:(c)=> sv(`
+    ${txt(12,22,"JACK BOARD, SOLDER SIDE",{s:12,c:"#9FC4AE"})}
+    <rect x="214" y="28" width="96" height="96" rx="6" fill="none" stroke="${K.silk}" stroke-width="1.5"/>${txt(262,140,c.j,{a:"middle"})}
+    ${[[226,46,"1"],[298,46,"2"],[226,106,"3"],[298,106,"4"],[262,76,"5"]].map(p=>pad(p[0],p[1],7)+txt(p[0]+(p[0]<262?-14:10),p[1]+4,p[2],{s:11,c:K.silk})).join("")}
+    ${trace("M150 150 H200 V46 H219")}${smd(140,150,c.r)}
+    ${trace("M126 150 H100 V176 H86")}
+    ${[34,60,86,112,138].map(x=>pad(x,176,6)).join("")}${txt(86,196,"link pins",{a:"middle",s:11,c:"#9FC4AE"})}
+    ${probe(124,150,K.red)}
+    <g transform="translate(34 176)"><g class="scan">${probe(0,0,"#222").replace('transform="translate(0 0)"','')}</g></g>
+    <g class="beep">${tag(150,186,"BEEP = "+c.a)}</g>
+    ${tag(12,46,"meter on beep mode",K.silk,true)}${txt(330,196,"layout simplified",{s:11,c:"#9FC4AE",a:"end"})}`, "Meter finds the link pin that connects to "+c.r),
+  open:(c)=> sv(`
+    <rect x="0" y="0" width="340" height="84" fill="${K.bd}"/><rect x="0" y="116" width="340" height="84" fill="${K.bd2}"/>
+    <rect x="0" y="84" width="340" height="32" fill="#0B1F15"/>
+    ${txt(12,20,"JACK BOARD",{s:12,c:"#9FC4AE"})}${txt(12,190,"MAIN BOARD",{s:12,c:"#9FC4AE"})}
+    ${[50,90,130,170,210,250,290].map((x,i)=>{ const isA=i===2, isF=i===4; const link = isA||isF; return pad(x,70,6)+pad(x,130,6)+(link?`<path d="M${x} 70 V130" stroke="${K.sol}" stroke-width="5" class="ghost" fill="none"/><path d="M${x} 70 V130" stroke="${K.sol}" stroke-width="5" class="gone"/>`:`<path d="M${x} 70 V130" stroke="${K.sol}" stroke-width="5" opacity=".75"/>`); }).join("")}
+    <g class="appear"><path d="M122 92 l16 16 M138 92 l-16 16 M202 92 l16 16 M218 92 l-16 16" stroke="${K.red}" stroke-width="4" stroke-linecap="round"/></g>
+    ${tag(108,52,"A")}${tag(188,52,"F")}
+    ${txt(270,52,"leave the rest",{s:12,c:"#9FC4AE",a:"middle"})}
+    ${iron(130,72)}`, "Open link A and link F between the boards"),
+  jumper:(c)=> sv(`
+    ${txt(12,22,"MAIN BOARD SIDE OF THE LINKS",{s:12,c:"#9FC4AE"})}
+    ${[60,100,140,180,220,260].map(x=>pad(x,70,7)).join("")}
+    ${tag(126,48,"A")}${tag(206,48,"F")}
+    ${wire("M140 70 C 146 130, 214 130, 220 70", K.wire2)}
+    ${blob(140,70)}${blob(220,70,"blob2")}
+    ${iron(140,70)}${iron(220,70,"iron2")}
+    ${tag(110,170,"short jumper: A to F")}`, "Solder a jumper between the main-side A and F pins"),
+  tap:(c)=> sv(`
+    <rect x="0" y="0" width="340" height="58" fill="${K.bd}"/><rect x="0" y="58" width="340" height="4" fill="#0B1F15"/><rect x="0" y="62" width="340" height="138" fill="${K.bd2}"/>
+    ${txt(12,20,"JACK BOARD",{s:12,c:"#9FC4AE"})}${txt(12,192,"MAIN BOARD",{s:12,c:"#9FC4AE"})}
+    ${pad(270,40,7)}${tag(196,26,c.a+" (jack side)")}
+    ${c.via ? `${sqpad(80,128,12)}<rect x="68" y="116" width="24" height="24" fill="none" stroke="${K.hl}" stroke-width="2" class="pulse"/>${txt(80,160,c.tp,{a:"middle"})}`
+            : `${capTop(80,128,30,"",false)}${sqpad(68,128,11)}${pad(94,128,6)}<circle cx="94" cy="128" r="11" fill="none" stroke="${K.hl}" stroke-width="2.5" class="pulse"/>${txt(80,176,c.tp,{a:"middle"})}${tag(150,160,"leg opposite +")}`}
+    ${wire(c.via?"M80 128 C 90 60, 250 90, 270 40":"M94 128 C 120 70, 240 90, 270 40")}
+    ${blob(c.via?80:94,128)}${blob(270,40,"blob2")}
+    ${iron(c.via?80:94,128)}${iron(270,40,"iron2")}`, "Run the tap wire from "+"the tap point to the jack-side link pin"),
+  cut:(c)=> sv(`
+    ${txt(12,22,"JACK "+c.j+", SOLDER SIDE",{s:12,c:"#9FC4AE"})}
+    ${trace("M40 70 H250",5)}${trace("M40 120 H250",5)}
+    ${[[260,40,"1"],[260,70,"2"],[260,120,"3"],[260,150,"4"],[300,95,"5"]].map(p=>pad(p[0],p[1],8)+txt(p[0]+14,p[1]+4,p[2],{s:12,c:K.silk})).join("")}
+    <rect class="sliver" x="214" y="66" width="9" height="8" fill="#2F7A50"/><rect class="sliver" x="214" y="116" width="9" height="8" fill="#2F7A50"/>
+    <rect class="cutA" x="211" y="64" width="3" height="12" fill="${K.cut}"/><rect class="cutB" x="220" y="64" width="3" height="12" fill="${K.cut}"/>
+    <rect class="cutC" x="211" y="114" width="3" height="12" fill="${K.cut}"/><rect class="cutD" x="220" y="114" width="3" height="12" fill="${K.cut}"/>
+    <g class="appear"><rect x="211" y="64" width="12" height="12" fill="${K.cut}"/><rect x="211" y="114" width="12" height="12" fill="${K.cut}"/></g>
+    <g transform="translate(212 70)"><g class="knife4">${knife()}</g></g>
+    ${tag(40,52,"cut pin 2 trace")}${tag(40,150,"cut pin 3 trace")}
+    ${txt(20,190,"two shallow cuts 1 mm apart, flick out the sliver",{s:12,c:K.silk})}`, "Cut the traces to jack contacts 2 and 3"),
+  res:(c)=> sv(`
+    ${txt(12,22,"JACK BOARD",{s:12,c:"#9FC4AE"})}
+    ${pad(80,160,7)}${tag(30,190,c.f+" (jack side)")}
+    ${pad(250,160,8)}${tag(210,190,"sleeve = ground",K.silk,true)}
+    <g class="drop">${bands(137,92)}<path d="M137 92 H80 V158 M193 92 H250 V158" fill="none" stroke="#C9CED3" stroke-width="2.6"/></g>
+    ${blob(80,160)}${blob(250,160,"blob2")}
+    ${tag(110,58,"120 Ω: brown red black black brown",K.silk,true)}`, "Fit the 120 ohm resistor from the ring pin to ground"),
+  tidy:(c)=> sv(`
+    ${wire("M30 130 C 110 60, 220 160, 310 80", K.wire,"",4)}
+    <g class="drop"><rect x="120" y="92" width="70" height="34" rx="3" fill="#D99A2B" opacity=".75"/>${txt(155,114,"Kapton",{a:"middle",c:"#3A2400"})}</g>
+    ${wire("M60 170 q 30 -18 60 0 t 60 0 t 60 0","#BFE3FF","draw",3)}
+    ${tag(210,168,"IPA + brush",K.silk,true)}
+    ${tag(16,34,"tack wires flat, clean flux")}`, "Tape wires flat and clean the flux"),
+  test:(c)=> sv(`
+    ${meter(20,24,"DC V","…","3 mV")}
+    <rect x="200" y="70" width="70" height="70" rx="6" fill="#2E3338" stroke="${K.silk}"/>${txt(235,160,c.j,{a:"middle"})}
+    <g class="slideIn"><rect x="270" y="98" width="62" height="14" rx="4" fill="#C9CED3"/><rect x="300" y="94" width="40" height="22" rx="4" fill="#222"/></g>
+    <path d="M112 50 C 150 50, 160 105, 200 105" stroke="${K.red}" stroke-width="3" fill="none"/><path d="M112 70 C 140 80, 150 128, 200 128" stroke="#111" stroke-width="3" fill="none"/>
+    <g class="appear">${tag(20,120,"under 10 mV = good",K.silk,true)}</g>
+    ${tag(20,180,"channel still plays in the main mix?")}`, "Power-on test of the direct out"),
+  pol:(c)=>{ const w=(y,inv,col)=>{ let d=`M20 ${y}`; for(let x=0;x<=300;x+=4){ const t=x/300; const v=Math.sin(t*28)*Math.exp(-t*5)*26*(inv?-1:1); d+=` L${20+x} ${(y-(x<12?0:v)).toFixed(1)}`; } return wire(d,col,"draw",2.5); };
+    return sv(`${txt(20,22,"MAIN L",{s:12,c:"#9FC4AE"})}${w(56,false,"#FFFFFF")}${txt(20,106,"DIRECT OUT",{s:12,c:"#9FC4AE"})}${w(140,false,K.wire2)}<g class="appear">${tag(200,186,"same first swing = OK",K.silk,true)}</g>`,"Polarity comparison"); },
+  restap:(c)=> sv(`
+    ${txt(12,22,"MAIN BOARD",{s:12,c:"#9FC4AE"})}
+    ${c.via?sqpad(110,150,12):pad(110,150,7)}${txt(110,182,c.tp,{a:"middle"})}
+    <g class="drop"><rect x="102" y="66" width="16" height="50" rx="7" fill="#9EC3D9"/>${[74,82,90,98,108].map((yy,i)=>`<rect x="102" y="${yy}" width="16" height="4" fill="${["#7B4A2A","#C62828","#111","#111","#7B4A2A"][i]}"/>`).join("")}<path d="M110 116 V148 M110 66 V40 H150" stroke="#C9CED3" stroke-width="2.6" fill="none"/></g>
+    ${blob(110,150)}
+    <g class="appear">${tag(156,44,c.leg)}</g>${iron(110,150)}`, "Stand a 120 ohm resistor on the tap point"),
+  db25:(c)=> sv(`
+    ${txt(12,22,"DB25, SOLDER-CUP SIDE",{s:12,c:"#9FC4AE"})}
+    <path d="M30 40 H310 L292 120 H48 Z" fill="#2E3338" stroke="${K.silk}"/>
+    ${Array.from({length:13},(_,i)=>{ const p=i+1, x=50+i*20.5, on=(p===c.hot||p===c.cold); return `<rect x="${x-6}" y="58" width="12" height="16" rx="2" fill="${on?K.hl:K.cu}"/>${on?txt(x,52,String(p),{a:"middle",s:12}):""}`; }).join("")}
+    ${Array.from({length:12},(_,i)=>{ const p=i+14, x=60+i*20.5, on=(p===c.hot||p===c.cold); return `<rect x="${x-6}" y="90" width="12" height="16" rx="2" fill="${on?K.hl:K.cu}"/>${on?txt(x,124,String(p),{a:"middle",s:12}):""}`; }).join("")}
+    ${wire(`M10 190 C 60 170, ${c.hx-10} 160, ${c.hx} ${c.hy}`, K.wire2)}${wire(`M20 196 C 70 176, ${c.cx2-10} 170, ${c.cx2} ${c.cy2}`, "#86AFD6")}
+    ${tag(196,170,"hot pin "+c.hot+", cold pin "+c.cold,K.silk,true)}`, "Wire the twisted pair to the DB25 cups"),
+  lift:(c)=> sv(`
+    ${txt(12,22,"MAIN BOARD, NEAR "+c.u,{s:12,c:"#9FC4AE"})}
+    <rect x="96" y="96" width="9" height="14" fill="${K.cu}"/><rect x="141" y="96" width="9" height="14" fill="${K.cu}"/>
+    <g class="tilt"><rect x="100" y="95" width="46" height="16" rx="2" fill="#222"/><rect x="141" y="96" width="9" height="14" fill="${K.sol}"/></g>
+    ${txt(122,132,c.r,{a:"middle"})}
+    ${sqpad(270,70,12)}${txt(270,98,c.e14,{a:"middle"})}
+    <g class="appear2">${wire("M139 86 C 180 40, 240 50, 270 70", K.wire,"",3.5)}</g>
+    ${iron(146,103)}
+    ${tag(16,170,"lift the end that beeps to "+c.e12)}`, "Lift one end of the resistor and wire it to the EQ output test point"),
+  cap:(c)=> sv(`
+    ${txt(12,22,"COMPONENT SIDE",{s:12,c:"#9FC4AE"})}
+    <ellipse cx="170" cy="150" rx="34" ry="12" fill="none" stroke="${K.silk}" stroke-width="1.5"/><path d="M136 150 A34 12 0 0 1 170 138 V162 A34 12 0 0 1 136 150Z" fill="${K.silk}" opacity=".3"/>
+    ${txt(214,154,"+",{s:16,c:K.silk})}${txt(118,154,"−",{s:16,c:K.silk})}
+    <g class="riseOut">${capBody(170,128,"old","#6B5A3A")}</g>
+    <g class="dropLate">${capBody(170,128,"new")}</g>
+    <g class="appear2">${tag(16,48,"stripe (−) faces the shaded side",K.silk,true)}</g>
+    ${tag(16,190,c.label)}`, "Swap the capacitor, stripe matching the board marking"),
+  drill:(c)=> c.holes ? sv(`
+    <rect x="0" y="0" width="340" height="200" fill="#5A6066"/>${txt(12,22,"REAR PANEL",{s:12,c:"#E3E5E6"})}
+    <circle cx="80" cy="90" r="18" fill="none" stroke="#fff" stroke-dasharray="5 4"/><circle cx="250" cy="90" r="18" fill="none" stroke="#fff" stroke-dasharray="5 4"/>
+    <circle class="h1" cx="80" cy="90" r="14" fill="#111"/><circle class="h2b" cx="250" cy="90" r="14" fill="#111"/>
+    <g transform="translate(80 90)"><g class="drill2"><path d="M0 0 L-5 -14 L5 -14 Z" fill="#E7E9EA"/><rect x="-5" y="-60" width="10" height="46" fill="#C9CED3"/><rect x="-14" y="-96" width="28" height="38" rx="5" fill="#E2A33B"/></g></g>
+    ${tag(16,178,"two 3/8 inch holes for the TRS jacks")}`, "Drill two holes for the TRS jacks") : sv(`
+    <rect x="0" y="0" width="340" height="200" fill="#5A6066"/>${txt(12,22,"REAR PANEL",{s:12,c:"#E3E5E6"})}
+    <path d="M70 70 H270 L256 130 H84 Z" fill="none" stroke="#fff" stroke-dasharray="5 4"/>
+    <circle class="h1" cx="80" cy="70" r="6" fill="#111"/><circle class="h2" cx="250" cy="70" r="6" fill="#111"/><circle class="h3" cx="250" cy="126" r="6" fill="#111"/><circle class="h4" cx="80" cy="126" r="6" fill="#111"/>
+    <g transform="translate(80 70)"><g class="drill"><path d="M0 0 L-5 -14 L5 -14 Z" fill="#E7E9EA"/><rect x="-5" y="-60" width="10" height="46" fill="#C9CED3"/><rect x="-14" y="-96" width="28" height="38" rx="5" fill="#E2A33B"/></g></g>
+    ${tag(16,178,"step-bit the corners, then nibble and file")}`, "Drill the corners of the DB25 cutout"),
+  bleed:()=> sv(`
+    ${meter(220,22,"62 V","9 V","0.4 V")}
+    <rect x="40" y="70" width="70" height="96" rx="10" fill="#2B4D8C"/><rect x="40" y="70" width="16" height="96" fill="#D9DEE6" opacity=".85"/><rect x="40" y="62" width="70" height="12" rx="5" fill="#BFC6CE"/>${txt(75,124,"C6",{a:"middle",s:15})}
+    <path d="M58 62 C 70 30, 120 30, 140 46" stroke="${K.red}" stroke-width="3" fill="none"/><path d="M92 62 C 110 40, 170 70, 196 46" stroke="#111" stroke-width="3" fill="none"/>
+    <rect x="134" y="36" width="70" height="20" rx="4" fill="#B9C2C9"/>${txt(169,51,"2.2 kΩ 5 W",{a:"middle",s:12,c:"#222"})}
+    ${tag(16,192,"hold 10–20 s, then meter must read under 1 V")}`, "Bleed a capacitor with a resistor and check the voltage")
+};
+
+/* ---------- step definitions ---------- */
+function board(n){ return n<=14 ? `Channel board, sheet 50-${n}` : `Master board, sheet 49-${n-14}`; }
+function tapName(n){ return S.opts.tap==="A" ? `E${n}07` : `C${n}10`; }
+const TASCAM = {1:[24,12,25],2:[10,23,11],3:[21,9,22],4:[7,20,8],5:[18,6,19],6:[4,17,5],7:[15,3,16],8:[1,14,2]};
+function dbSlot(n){ const l=S.chans.slice().sort((a,b)=>a-b), i=l.indexOf(n); return i<0?null:{conn:"ABC"[Math.floor(i/8)], slot:(i%8)+1}; }
+function cupXY(p){ return p<=13 ? [50+(p-1)*20.5, 66] : [60+(p-14)*20.5, 98]; }
+
+function chanSteps(n){
+  const st=[]; const tp=tapName(n); const via=S.opts.tap==="A";
+  if(S.mods.m1){
+    const ctx={n, j:`J${n}02`, r:`R${n}62`, a:`E${n}02A`, f:`E${n}02F`, tp, via};
+    st.push({mod:"m1", sid:"find", title:"Find the two link pins", time:"5 min", tools:["Meter"], scene:"find", ctx,
+      do:[`Set your meter to beep mode.`, `Touch one probe to the ${P("R"+n+"62",1)} pad that does <b>not</b> beep to the jack tip.`, `Slide the other probe along the link pins. The one that beeps is ${P("E"+n+"02A",1)}. Mark it.`, `Repeat from the jack’s ring tab (contact 4). That pin is ${P("E"+n+"02F",1)}.`],
+      check:"Two pins marked: A and F.", why:"These pins carry the insert signal between the jack board and the main board. You’ll reroute both. Pin labels on the board don’t line up with channels, so the meter is the only reliable way to find them.", fig:"pcbJack"});
+    st.push({mod:"m1", sid:"open", title:"Break links A and F", time:"5 min", tools:["Iron","Braid","Flux"], scene:"open", ctx,
+      do:[`Look at how the links are made: a pin header or a short wire.`, `Heat link A and free it so the two boards no longer connect there.`, `Do the same for link F.`],
+      warn:"Only A and F. The other links carry ground and audio.", check:"No beep across A. No beep across F.", why:"Breaking these lets you send the preamp straight into the channel, and use the jack for your new output instead.", fig:"schInsert"});
+    st.push({mod:"m1", sid:"jumper", title:"Jumper the main-board side", time:"3 min", tools:["Iron","28 AWG wire"], scene:"jumper", ctx,
+      do:[`Cut about 3 cm of wire. Strip 2 mm at each end.`, `Solder one end to the <b>main-board</b> side of ${P("E"+n+"02A")}.`, `Solder the other end to the <b>main-board</b> side of ${P("E"+n+"02F")}.`],
+      check:"Beep between those two main-side pins.", why:`This connects the preamp straight to ${P("C"+n+"41")} and the rest of the channel, so the channel works whether a cable is plugged in or not.`});
+    st.push({mod:"m1", sid:"tap", title:"Run the tap wire", time:"5 min", tools:["Iron","28 AWG wire"], scene:"tap", ctx,
+      do: via ? [`Find test point ${P("E"+n+"07",1)} at the top end of the fader.`, `Solder a wire to it.`, `Run the wire to the <b>jack-board</b> side of ${P("E"+n+"02A",1)} and solder it.`]
+              : [`Find ${P("C"+n+"10",1)}, the round can next to chip ${P("U"+n+"03")}.`, `Pick its leg on the side <b>without</b> the + mark.`, `Solder a wire there. Run it to the <b>jack-board</b> side of ${P("E"+n+"02A",1)} and solder it.`],
+      check:`Jack tip to ${tp}: about 120 Ω.`, why:`${P("R"+n+"62")} now sits between your tap and the jack tip. It protects the chip from cable loads. ${via?"This tap ignores the fader.":"This tap follows your EQ, fader and mute."}`, fig:"schEq"});
+    if(S.opts.bal){
+      st.push({mod:"m1", sid:"cut", title:"Cut two traces on the jack", time:"5 min", tools:["Hobby knife","Meter"], scene:"cut", ctx,
+        do:[`Find jack ${P("J"+n+"02")} on the solder side and its pins 2 and 3.`, `Right next to pin 2, make two shallow cuts about 1 mm apart.`, `Flick out the copper sliver between them.`, `Do the same for pin 3.`],
+        warn:"Shallow cuts only. Don’t nick the trace next door.", check:"Pins 2 and 3 don’t beep to anything.", why:"Pins 2 and 3 are switch contacts that only matter for an insert loop. Left connected, they would load your new output when nothing is plugged in.", fig:"schJack"});
+      st.push({mod:"m1", sid:"res", title:"Add the 120 Ω resistor", time:"4 min", tools:["Iron","120 Ω resistor"], scene:"res", ctx,
+        do:[`Check the resistor reads 118.8–121.2 Ω.`, `Solder one leg to the <b>jack-board</b> side of ${P("E"+n+"02F",1)}. That’s now the ring.`, `Solder the other leg to the jack’s sleeve pad (ground).`],
+        check:"Ring to sleeve: 120 Ω.", why:"This balances the output, so a TRS cable into a balanced input rejects hum."});
+    }
+    st.push({mod:"m1", sid:"tidy", title:"Tidy and clean", time:"3 min", tools:["Kapton","IPA"], scene:"tidy", ctx,
+      do:[`Lay the wires flat, away from the preamp parts.`, `Tack them down with Kapton or a dot of hot glue.`, `Clean flux with IPA and check for solder bridges.`],
+      check: S.opts.bal ? "Plan to use TRS cables." : "Lite version: use TS cables."});
+    st.push({mod:"m1", sid:"test", title:"Power-on test", time:"5 min", tools:["Meter","RD-9"], scene:"test", ctx,
+      do:[`Reassemble enough to power up safely.`, `Play the RD-9 on this channel, fader at U.`, `Check it still plays in the main mix, with and without a cable in the jack.`, `Meter on DC volts across the jack tip and sleeve.`],
+      check:"Under 10 mV DC, and the direct out records cleanly.", why:"More DC than that means a leaky capacitor. Replace it in the recap."});
+    st.push({mod:"m1", sid:"pol", title:"Polarity check (first channel only)", time:"5 min", tools:["Ableton"], scene:"pol", ctx,
+      do:[`Pan this channel hard left.`, `Record its direct out and Main L at the same time.`, `Zoom in on one drum hit.`],
+      check:"The first swing goes the same way on both tracks.", why:"Confirms the wiring once. After this channel passes, you can skip this step."});
+  }
+  if(S.mods.m2){
+    const sl=dbSlot(n); const pins = sl?TASCAM[sl.slot]:[0,0,0]; const [hx,hy]=cupXY(pins[0]||1), [cx2,cy2]=cupXY(pins[1]||1);
+    st.push({mod:"m2", sid:"hot", title:"Resistor on the tap (hot)", time:"4 min", tools:["Iron","120 Ω resistor"], scene:"restap", ctx:{tp, via, leg:"free leg = hot"},
+      do:[`Solder one leg of a 120 Ω resistor to ${via?`test point ${P("E"+n+"07",1)}`:`the leg of ${P("C"+n+"10",1)} without the + mark`}.`, `Leave the other leg standing. That’s your hot wire point.`], check:"Resistor reads 120 Ω to the tap.", fig:"pcbMain"});
+    st.push({mod:"m2", sid:"cold", title:"Resistor on ground (cold)", time:"3 min", tools:["Iron","120 Ω resistor"], scene:"restap", ctx:{tp:`E${n}15`, via:true, leg:"free leg = cold"},
+      do:[`Solder a second 120 Ω resistor to test point ${P("E"+n+"15",1)}.`, `Its free leg is your cold wire point.`], check:"120 Ω from the free leg to ground."});
+    st.push({mod:"m2", sid:"db", title: sl?`Wire to DB25 ${sl.conn}, slot ${sl.slot}`:"No DB25 slot", time:"5 min", tools:["Iron","Twisted pair"], scene: sl?"db25":null, ctx:{hot:pins[0],cold:pins[1],hx,hy:hy-8,cx2,cy2:cy2-8},
+      do: sl?[`Solder a twisted pair to the two free resistor legs.`, `At the DB25: hot to pin ${pins[0]}, cold to pin ${pins[1]}.`, `Ground pin ${pins[2]} goes to the shield, at the connector end only.`]:[`Add this channel on the Plan tab to give it a slot.`],
+      check:"Hot pin to tap: 120 Ω. Cold pin to ground: 120 Ω."});
+  }
+  if(S.mods.m4){
+    st.push({mod:"m4", sid:"lift", title:"Re-route the aux pre feed", time:"8 min", tools:["Iron","Meter","Wire"], scene:"lift", ctx:{u:`U${n}04`, r:`R${n}36`, e12:`E${n}12`, e14:`E${n}14`},
+      do:[`Find ${P("R"+n+"36",1)} near chip ${P("U"+n+"04")}.`, `Find the end that beeps to test point ${P("E"+n+"12")}.`, `Heat that end and lift it off its pad.`, `Run a short wire from the lifted end to test point ${P("E"+n+"14",1)}.`],
+      check:`Lifted end beeps to E${n}14, not to E${n}12.`, why:"Now aux 1–2 pre sends hear your EQ, so your parallel FX chains follow your EQ moves.", fig:"schEq"});
+  }
+  if(S.mods.m5){
+    const groups=[["Line input caps",[`C${n}12`,`C${n}13`],"47 µF 35 V audio"],["Preamp caps",[`C${n}04`,`C${n}05`],"470 µF 16 V and 47 µF 35 V"],["Path caps",[`C${n}41`,`C${n}17`,`C${n}42`],"47 µF 35 V audio"],["Fader and output caps",[`C${n}39`,`C${n}19`,`C${n}10`],"47 µF 35 V audio"],["Aux caps",[`C${n}38`,`C${n}40`],"47 µF 35 V audio"],["Low-cut filter caps to film",[`C${n}14`,`C${n}15`,`C${n}16`],"0.22 µF film 63 V"]];
+    groups.forEach((g,i)=>st.push({mod:"m5", sid:"cap"+i, title:g[0], time:"10 min", tools:["Iron","Braid",g[2]], scene:"cap", ctx:{label:g[1].join(", ")},
+      do:[`Note which way each cap faces before removing it.`, `Swap ${g[1].map(x=>P(x)).join(", ")} one at a time.`, i===5?`Film caps have no polarity; bend the leads to fit.`:`New cap: stripe (−) on the same side as before.`],
+      check:"Each joint shiny, no bridges.", why: i===5?"Film caps hold their value tightly, so the 75 Hz low cut lands where Mackie designed it.":"Old caps leak and make pots and faders scratchy."}));
+  }
+  return st;
+}
+function wholeSteps(){
+  const st=[];
+  if(S.mods.m0){
+    st.push({mod:"m0", sid:"subs", title:"Use the subs as stem buses", time:"10 min", tools:["TRS cables"], do:["Assign RD-9 channels 1–8 to Sub 1-2 only.","Assign synth channels 9–16 to Sub 3-4 only.","Press each sub’s assign-to-L-R switch so the main mix still hears everything.","Patch Sub Out 1–4 and Main L/R into the interface."], check:"Four stem tracks plus the main mix in Ableton."});
+    st.push({mod:"m0", sid:"fx", title:"Make your FX follow your EQ", time:"5 min", tools:[], do:["Move the Microverb/dbx send from aux 1 to aux 5.","Move the Overlord send from aux 2 to aux 6."], check:"Turning a channel’s EQ now changes what the FX hear.", why:"Aux 1–2 are wired before the EQ and fader. Aux 5–6 come after both."});
+  }
+  if(S.mods.m2){
+    st.push({mod:"m2", sid:"panel", title:"Cut the DB25 openings", time:"45 min", tools:["Step bit","Nibbler","File"], scene:"drill", ctx:{}, do:["Measure the rear panel and the space behind it.","Mark each opening from the connector datasheet.","Step-bit the four corners, nibble out the middle, file smooth."], warn:"Take the boards out first. Metal swarf shorts tiny parts.", check:"Connector drops in flat and its screws line up."});
+    st.push({mod:"m2", sid:"route", title:"Route and ground the multicore", time:"15 min", tools:["Cable ties"], do:["Route the cable away from the power supply.","Connect each shield at the connector end only.","Check the snake uses the TASCAM analog pinout."], check:"No shield touches the board end."});
+  }
+  if(S.mods.m3){
+    const db = S.opts.m3out==="db25";
+    st.push({mod:"m3", sid:"tapL", title:"Stereo channel: left tap", time:"5 min", tools:["Iron","120 Ω ×2"], scene:"restap", ctx:{tp:"C2107", via:false, leg:"free leg = left hot"}, do:[`Solder a 120 Ω resistor to the leg of ${P("C2107",1)} without the + mark.`,`Solder a second 120 Ω from channel ground (${P("Z2100")} side) for the cold leg.`], check:"Each resistor reads 120 Ω.", fig:"schStereo"});
+    st.push({mod:"m3", sid:"tapR", title:"Stereo channel: right tap", time:"5 min", tools:["Iron","120 Ω ×2"], scene:"restap", ctx:{tp:"C2117", via:false, leg:"free leg = right hot"}, do:[`Same again on ${P("C2117",1)}.`,`Second resistor from ground for the right cold leg.`], check:"Each resistor reads 120 Ω.", fig:"schStereo"});
+    st.push({mod:"m3", sid:"out", title: db?"Wire to the DB25 slots":"Fit two TRS jacks", time:"20 min", tools: db?["Iron"]:["Step bit","2 TRS jacks"], scene: db?null:"drill", ctx:{holes:true}, do: db?["Run one twisted pair per side to the slots after your mono channels."]:["Drill two 3/8\" holes where you measured clear space.","Hot to tip, cold to ring, shield to sleeve at the jack end."], warn: db?"":"Take the boards out before drilling.", check:"Run the polarity check on this channel too."});
+  }
+  if(S.mods.m5){
+    st.push({mod:"m5", sid:"psu1", title:"Power supply: big caps", time:"20 min", tools:["Iron","6,800 µF 50 V ×3"], scene:"cap", ctx:{label:"C1, C2, C7"}, do:[`Confirm the safety check is done today.`, `Swap ${P("C1",1)}, ${P("C2",1)} and ${P("C7",1)} one at a time.`, `Match the stripe to the board marking.`], warn:"These hold a lot of energy. Bleed them first.", check:"Each new cap sits flat, stripe correct.", fig:"schPsu"});
+    st.push({mod:"m5", sid:"psu2", title:"Power supply: phantom caps", time:"10 min", tools:["Iron","1,000 µF 100 V","100 µF 100 V"], scene:"cap", ctx:{label:"C6, C5"}, do:[`Swap ${P("C6",1)} (1,000 µF 100 V) and ${P("C5",1)} (100 µF 100 V).`], warn:"C6 holds the highest voltage in the console.", check:"Stripes correct.", fig:"schPsu"});
+    st.push({mod:"m5", sid:"psu3", title:"Power supply: small caps", time:"10 min", tools:["Iron"], scene:"cap", ctx:{label:"C3, C4, C8, C9"}, do:[`Swap ${P("C3")} and ${P("C4")} (100 µF 35 V), ${P("C8")} (47 µF 35 V) and ${P("C9")} (4.7 µF 100 V).`], check:"Stripes correct."});
+    st.push({mod:"m5", sid:"rails", title:"Check the rails", time:"5 min", tools:["Meter"], do:["Power on.","Measure about +15.7 V, −15.7 V, +5 V and +48 V."], check:"All four within about 5%."});
+  }
+  return st;
+}
+
+/* ---------- sequence + progress ---------- */
+const key = (ch, s) => `${ch}.${s.mod}.${s.sid}`;
+function sequence(){
+  const chans=S.chans.slice().sort((a,b)=>a-b);
+  if(S.mode==="whole") return wholeSteps().map(s=>({ch:"w", s}));
+  if(S.opts.order==="line"){
+    const tmpl = chanSteps(chans[0]||1).map(s=>s.mod+"."+s.sid); const out=[];
+    tmpl.forEach(id=>chans.forEach(ch=>{ const s=chanSteps(ch).find(x=>x.mod+"."+x.sid===id); if(s) out.push({ch,s}); }));
+    return out;
+  }
+  return chanSteps(S.ch).map(s=>({ch:S.ch, s}));
+}
+function chanProgress(n){ const st=chanSteps(n); if(!st.length) return 0; return st.filter(s=>S.done[key(n,s)]).length/st.length; }
+function firstOpenIndex(seq){ const i=seq.findIndex(x=>!S.done[key(x.ch,x.s)]); return i<0?seq.length:i; }
+
+/* ---------- renderers ---------- */
+function renderStrips(el){
+  let h=""; for(let n=1;n<=20;n++){ const on=S.chans.includes(n), p=on?chanProgress(n):0;
+    h+=`<button class="strip${on?"":" off"}${n===S.ch&&S.mode==="chan"?" sel":""}" data-ch="${n}" aria-label="Channel ${n}, ${Math.round(p*100)} percent done"><span class="fill" style="height:${p*100}%"></span><span class="cap" style="bottom:calc(${p*70}% + 18px)"></span><span class="num">${n}</span></button>`; }
+  h+=`<div class="strip-legend"><span>Fader up = steps done</span><span>Tap a channel</span></div>`;
+  el.innerHTML=h;
+  el.querySelectorAll(".strip").forEach(b=>b.onclick=()=>{ S.ch=+b.dataset.ch; S.mode="chan"; S.opts.order="chan"; S.idx=null; save(); location.hash="#step"; });
+}
+function safeOk(){ return SAFE.every((_,i)=>S.safe["s"+i]); }
+
+function renderToday(){
+  document.getElementById("todaySafety").innerHTML = safeOk() ? `<div class="card ok"><b>Safety check done today.</b></div>` : `<a class="big" href="#safety" style="background:var(--red);text-decoration:none"><b>First: safety check</b><span>Six quick ticks before you open the console.</span></a>`;
+  const seq = (()=>{ const m=S.mode; S.mode="chan"; const s=sequence(); S.mode=m; return s; })();
+  const i=firstOpenIndex(seq); const nx=seq[i];
+  const total = S.chans.reduce((a,n)=>a+chanSteps(n).length,0), done = S.chans.reduce((a,n)=>a+chanSteps(n).filter(s=>S.done[key(n,s)]).length,0);
+  document.getElementById("todayNext").innerHTML = nx ? `<a class="big" href="#step" id="contBtn" style="text-decoration:none"><b>Continue: ${nx.s.title}</b><span>Channel ${nx.ch}, step ${chanSteps(nx.ch).findIndex(x=>x.sid===nx.s.sid&&x.mod===nx.s.mod)+1} of ${chanSteps(nx.ch).length}. About ${nx.s.time}.</span></a>` : `<div class="card ok"><b>Channel ${S.ch} is finished.</b> Tap another channel below.</div>`;
+  const cb=document.getElementById("contBtn"); if(cb) cb.onclick=()=>{ S.mode="chan"; if(S.opts.order!=="line") S.ch=nx.ch; S.idx=null; save(); };
+  renderStrips(document.getElementById("todayStrips"));
+  const w=wholeSteps(), wd=w.filter(s=>S.done[key("w",s)]).length;
+  document.getElementById("todayExtra").innerHTML = `<p class="small muted">${done} of ${total} channel steps done.</p>` + (w.length?`<button class="big alt" id="wholeBtn"><b>Whole-console jobs</b><span>${wd} of ${w.length} done: ${[...new Set(w.map(s=>({m0:"setup",m2:"DB25 panel",m3:"stereo channel",m5:"power supply"})[s.mod]))].join(", ")}.</span></button>`:"");
+  const wb=document.getElementById("wholeBtn"); if(wb) wb.onclick=()=>{ S.mode="whole"; S.idx=null; save(); location.hash="#step"; };
+}
+
+function sceneHtml(name, ctx){ if(!name||!SC[name]) return ""; return `<div class="scene-wrap ${S.opts.anim==="off"?"still":""}" id="sceneBox">${SC[name](ctx||{})}<div class="scene-tools">${S.opts.anim==="off"?"":`<button id="scPause">Pause</button><button id="scReplay">Replay</button>`}</div></div>`; }
+
+function renderStep(){
+  const seq=sequence(); const body=document.getElementById("stepBody"); const bar=document.getElementById("actionbar");
+  if(!seq.length){ body.innerHTML=`<div class="card"><p style="margin:0">Nothing to do here yet. Pick mods on the <a href="#plan">Plan</a> tab.</p></div>`; bar.style.display="none"; return; }
+  if(S.idx==null || S.idx>seq.length) S.idx = firstOpenIndex(seq);
+  if(S.idx>=seq.length){
+    body.innerHTML = `<div class="card done-msg"><div class="n">${S.mode==="whole"?"Done":"Ch "+S.ch}</div><p style="font-size:20px">All steps ticked${S.mode==="whole"?" for the whole-console jobs":""}.</p><div class="row" style="justify-content:center"><a class="btn" href="#today" style="text-decoration:none">Back to Today</a><button class="btn ghost" id="revBtn">Review steps</button></div></div>`;
+    bar.style.display="none"; const rb=document.getElementById("revBtn"); if(rb) rb.onclick=()=>{ S.idx=0; save(); renderStep(); }; setWhere(); return;
+  }
+  const {ch, s} = seq[S.idx]; const k=key(ch,s), isDone=!!S.done[k];
+  const chSeq = S.mode==="whole" ? seq : seq.filter(x=>x.ch===ch);
+  const pos = chSeq.findIndex(x=>x.s===s);
+  const modName = {m0:"Setup",m1:"Direct out",m2:"DB25 outs",m3:"Stereo outs",m4:"Aux post-EQ",m5:"Recap"}[s.mod];
+  body.innerHTML = `
+    <div class="stephead"><span><span class="pill m">${S.mode==="whole"?"Whole console":"Channel "+ch}</span> <span class="pill b">${modName}</span></span><span class="muted small">${pos+1} of ${chSeq.length}</span></div>
+    <div class="dots" aria-hidden="true">${chSeq.map((x,i)=>`<i class="${S.done[key(x.ch,x.s)]?"done":(i===pos?"now":"")}"></i>`).join("")}</div>
+    ${!safeOk()?`<div class="warnbox"><b>Safety check not done today.</b> <a href="#safety">Do it now</a> before touching boards.</div>`:""}
+    ${sceneHtml(s.scene, s.ctx)}
+    <div class="steptitle">${s.title}</div>
+    <div class="meta"><span class="pill g">${s.time}</span>${(s.tools||[]).map(t=>`<span class="pill b">${t}</span>`).join("")}</div>
+    ${s.warn?`<div class="warnbox"><b>Careful:</b> ${s.warn}</div>`:""}
+    <ol class="do">${s.do.map(d=>`<li>${d}</li>`).join("")}</ol>
+    <div class="check"><b>Check:</b> ${s.check}</div>
+    ${s.why?`<details><summary>Why this step?</summary><p class="small" style="margin-top:8px">${s.why}</p></details>`:""}
+    ${s.fig?`<details><summary>See it on the real board or schematic</summary><div style="margin-top:8px"><button class="d" data-fig="${s.fig}">${FIGS.find(f=>f.id===s.fig).title}</button></div></details>`:""}
+    <details><summary>Something looks wrong?</summary><div id="faultBox" class="small" style="margin-top:8px">${faultsFor(s.mod)}</div></details>
+    ${S.mode==="chan"&&ch!=="w"?`<p class="small muted" style="margin-top:10px">${board(ch)}</p>`:""}`;
+  bar.style.display="block";
+  const go=document.getElementById("aGo"); go.textContent = isDone ? "Done already. Next" : "Done, next step"; go.className = "go";
+  go.onclick=()=>{ S.done[k]=true; S.idx++; save(); renderStep(); window.scrollTo(0,0); };
+  const back=document.getElementById("aBack"); back.disabled = S.idx===0; back.onclick=()=>{ if(S.idx>0){ S.idx--; save(); renderStep(); window.scrollTo(0,0);} };
+  if(isDone){ body.insertAdjacentHTML("beforeend", `<button class="btn ghost" id="undoBtn" style="margin-top:10px">Mark as not done</button>`); document.getElementById("undoBtn").onclick=()=>{ delete S.done[k]; save(); renderStep(); }; }
+  const box=document.getElementById("sceneBox");
+  const pz=document.getElementById("scPause"); if(pz) pz.onclick=()=>{ box.classList.toggle("paused"); pz.textContent=box.classList.contains("paused")?"Play":"Pause"; };
+  const rp=document.getElementById("scReplay"); if(rp) rp.onclick=()=>{ const svg=box.querySelector("svg"); const c=svg.cloneNode(true); svg.replaceWith(c); box.classList.remove("paused"); if(pz) pz.textContent="Pause"; };
+  setWhere(`${S.mode==="whole"?"Whole console":"Ch "+ch}: step ${pos+1}/${chSeq.length}`);
+}
+
+const FAULTS = {
+  m1:[["Channel silent in the main mix","The main-side jumper from step 3 is missing or cold. Main-side A to F should beep."],["Channel dies when a cable goes in","A link isn’t fully open, or the jumper landed on the jack-board side."],["Direct out silent","Tap wire off, or it landed on the main-board side of link A. Tip to tap should read 120 Ω."],["Direct out distorts","Balanced version: pin 3 trace not fully cut."],["Pop or DC on the tip","Leaky output cap. Replace it."],["Hum on the stems","Same power strip for everything, TRS cables into balanced inputs."]],
+  m2:[["No signal on a DB25 channel","Check the hot and cold pins against the slot shown in the step title."],["Hum","Shield connected at both ends. Cut it free at the board end."]],
+  m4:[["Aux 1 silent","The lifted end isn’t wired to E[N]14, or the wire landed on E[N]12."]],
+  m5:[["Channel dead after a cap swap","A cap in backwards or a solder bridge. Check stripe direction and joints."],["Buzz at 120 Hz","Power supply reservoir caps C1/C2."]],
+  m0:[["Stem missing from the main mix","Sub assign-to-L-R switch not pressed."]], m3:[["One side silent","Check the left/right tap and its cold resistor."]]
+};
+function faultsFor(m){ return (FAULTS[m]||[]).map(f=>`<p><b>${f[0]}.</b> ${f[1]}</p>`).join("") || "<p>Recheck the last joint and the meter reading.</p>"; }
+
+/* ---------- plan ---------- */
+const MODS = [
+  {id:"m0", name:"Setup without soldering", meta:"Record stems today using the subs. 15 min.", rec:true},
+  {id:"m1", name:"Direct out on each insert jack", meta:"The main mod. About 35 min per channel.", rec:true},
+  {id:"m2", name:"DB25 outputs (keeps inserts)", meta:"Needs holes cut in the chassis."},
+  {id:"m3", name:"Stereo channel 21-22 outputs", meta:"For the MS-70CDR+ return. About 1 hr."},
+  {id:"m4", name:"FX sends hear your EQ", meta:"Aux 1–2 become post-EQ. 8 min per channel."},
+  {id:"m5", name:"Recap", meta:"Fresh caps for quieter, healthier channels. 1 hr per channel."}
+];
+function renderPlan(){
+  document.getElementById("modList").innerHTML = MODS.map(m=>{
+    let o="";
+    if(S.mods[m.id]&&m.id==="m1") o=`<div class="opts"><div class="seg" role="group" aria-label="Version"><button data-opt="bal" data-val="1" aria-pressed="${S.opts.bal}">Balanced (TRS)</button><button data-opt="bal" data-val="0" aria-pressed="${!S.opts.bal}">Lite (TS, no cuts)</button></div><div class="seg" role="group" aria-label="Tap point"><button data-opt="tap" data-val="B" aria-pressed="${S.opts.tap==="B"}">Follows fader</button><button data-opt="tap" data-val="A" aria-pressed="${S.opts.tap==="A"}">Ignores fader</button></div></div>`;
+    if(S.mods[m.id]&&m.id==="m3") o=`<div class="opts"><div class="seg" role="group" aria-label="Output"><button data-opt="m3out" data-val="jacks" aria-pressed="${S.opts.m3out==="jacks"}">New TRS jacks</button><button data-opt="m3out" data-val="db25" aria-pressed="${S.opts.m3out==="db25"}">DB25 slots</button></div></div>`;
+    return `<div class="mod"><input type="checkbox" id="mk-${m.id}" data-mod="${m.id}" ${S.mods[m.id]?"checked":""}><label for="mk-${m.id}"><b>${m.name}${m.rec?' <span class="pill g">start here</span>':""}</b><span class="small muted">${m.meta}</span></label>${o}</div>`;
+  }).join("");
+  document.querySelectorAll("[data-mod]").forEach(i=>i.onchange=()=>{ S.mods[i.dataset.mod]=i.checked; S.idx=null; save(); renderPlan(); });
+  document.querySelectorAll("[data-opt]").forEach(b=>b.onclick=()=>{ let v=b.dataset.val; if(b.dataset.opt==="bal") v=v==="1"; S.opts[b.dataset.opt]=v; S.idx=null; save(); renderPlan(); });
+  let h=""; for(let n=1;n<=20;n++) h+=`<button class="chip" data-c="${n}" aria-pressed="${S.chans.includes(n)}">${n}</button>`;
+  const cc=document.getElementById("chanChips"); cc.innerHTML=h;
+  cc.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ const n=+b.dataset.c; S.chans=S.chans.includes(n)?S.chans.filter(x=>x!==n):S.chans.concat(n).sort((a,b)=>a-b); save(); renderPlan(); });
+  document.querySelectorAll("[data-order]").forEach(b=>{ b.setAttribute("aria-pressed", S.opts.order===b.dataset.order); b.onclick=()=>{ S.opts.order=b.dataset.order; S.mode="chan"; S.idx=null; save(); renderPlan(); }; });
+  document.querySelectorAll("[data-anim]").forEach(b=>{ b.setAttribute("aria-pressed", S.opts.anim===b.dataset.anim); b.onclick=()=>{ S.opts.anim=b.dataset.anim; save(); renderPlan(); }; });
+  renderParts();
+}
+function renderParts(){
+  const N=S.chans.length, sp=q=>Math.ceil(q*1.1), r=[];
+  r.push(["Hookup wire, 28 AWG","1 spool"],["Bleed resistor 2.2 kΩ 5 W","1"],["DeoxIT, IPA, Kapton","1 each"]);
+  if(S.mods.m0) r.push(["TRS cables (subs + main)","6"]);
+  if(S.mods.m1){ if(S.opts.bal) r.push(["120 Ω 1% metal film resistors",`${sp(N)}`]); r.push([S.opts.bal?"TRS cables":"TS cables",`${N}`]); }
+  if(S.mods.m2){ const db=Math.ceil((N+(S.mods.m3&&S.opts.m3out==="db25"?2:0))/8); r.push(["120 Ω 1% resistors (DB25)",`${sp(2*N)}`],["DB25 female panel connectors",`${db}`],["8-pair shielded cable",`${db} runs`],["DB25-to-TRS snakes (TASCAM)",`${db}`]); }
+  if(S.mods.m3){ r.push(["120 Ω 1% resistors (stereo)","5"]); if(S.opts.m3out==="jacks") r.push(["TRS panel jacks","2"]); r.push(["Shielded 2-core cable","1.5 m"]); }
+  if(S.mods.m5){ r.push(["47 µF 35 V audio caps",`${sp(11*N)}`],["470 µF 16 V caps",`${sp(N)}`],["0.22 µF film caps",`${sp(3*N)}`],["6,800 µF 50 V caps","3"],["1,000 µF 100 V cap","1"],["100 µF 100 V cap","1"],["100 µF 35 V caps","2"],["47 µF 35 V cap","1"],["4.7 µF 100 V cap","1"]); }
+  document.getElementById("partsNote").textContent=`For ${N} channels, with spares. Tick what you have.`;
+  document.getElementById("partsTable").innerHTML = r.map(x=>`<tr><td style="width:36px"><input type="checkbox" data-have="${encodeURIComponent(x[0])}" ${S.have[x[0]]?"checked":""} aria-label="Have ${x[0]}" style="width:24px;height:24px;accent-color:var(--green)"></td><td>${x[0]}</td><td><b>${x[1]}</b></td></tr>`).join("");
+  document.querySelectorAll("[data-have]").forEach(i=>i.onchange=()=>{ S.have[decodeURIComponent(i.dataset.have)]=i.checked; save(); });
+}
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ const p=b.dataset.preset; S.chans = p==="all"?[...Array(20)].map((_,i)=>i+1):p==="drums"?[1,2,3,4,5,6,7,8]:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18,19,20]; save(); renderPlan(); });
+
+/* ---------- safety ---------- */
+const SAFE = ["Power off, IEC cord unplugged, phantom switch off.","Waited 5 minutes.","Bled C6, C5, C1, C2 and C7 with the 2.2 kΩ resistor, 10–20 s each.","Meter reads under 1 V on each of them.","Touched bare chassis or I’m on a grounded mat.","Took photos of cables, knobs and jack nuts."];
+function renderSafety(){
+  document.getElementById("bleedScene").innerHTML = SC.bleed() ; document.getElementById("bleedScene").className = "scene-wrap"+(S.opts.anim==="off"?" still":"");
+  const el=document.getElementById("safeList");
+  el.innerHTML = SAFE.map((s,i)=>`<li><input type="checkbox" id="sf${i}" ${S.safe["s"+i]?"checked":""}><label for="sf${i}">${s}</label></li>`).join("") + (safeOk()?`<li style="display:block"><span class="pill g">All clear for today</span> <a href="#step">Go to your next step</a></li>`:"");
+  el.querySelectorAll("input").forEach((inp,i)=>inp.onchange=()=>{ S.safe["s"+i]=inp.checked; S.safe.date=today; save(); renderSafety(); });
+}
+document.getElementById("resetAll").onclick=()=>{ if(confirm("Reset every tick and choice?")){ try{ localStorage.removeItem("sr24bench2"); }catch(e){} location.reload(); } };
+
+/* ---------- learn ---------- */
+const SYMS = [
+  ["Resistor","Zigzag line. Limits current. On the board: tiny black block or striped bead.",`<path d="M8 30 H28 l4 -8 l8 16 l8 -16 l8 16 l8 -16 l4 8 H88" fill="none" stroke="currentColor" stroke-width="2"/>`],
+  ["Capacitor (polarised)","One straight plate (+), one curved plate (−). Passes audio, blocks DC. Can with a stripe on the minus side.",`<path d="M8 30 H42 M54 30 H88" stroke="currentColor" stroke-width="2"/><path d="M42 16 V44" stroke="currentColor" stroke-width="3"/><path d="M58 16 Q50 30 58 44" fill="none" stroke="currentColor" stroke-width="3"/><text x="32" y="16" font-size="12" fill="currentColor">+</text>`],
+  ["Op-amp (chip)","Triangle pointing the way the signal goes. Several live in one U chip, named A, B, C.",`<path d="M30 10 V50 L70 30 Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 22 H30 M14 38 H30 M70 30 H86" stroke="currentColor" stroke-width="2"/><text x="33" y="26" font-size="11" fill="currentColor">−</text><text x="33" y="42" font-size="11" fill="currentColor">+</text>`],
+  ["Ground","Three shrinking lines. The 0 V reference everything is measured from.",`<path d="M48 8 V30 M32 30 H64 M37 37 H59 M43 44 H53" stroke="currentColor" stroke-width="2"/>`],
+  ["Dot = connected","Lines that meet at a dot are joined. Lines that cross without a dot are not.",`<path d="M10 20 H86 M30 6 V54" stroke="currentColor" stroke-width="2"/><circle cx="30" cy="20" r="4" fill="currentColor"/><path d="M10 42 H86 M66 6 V54" stroke="currentColor" stroke-width="2"/>`],
+  ["Link (E-pins)","A little arch between two circles. A link you can open. Here it joins the jack board to the main board.",`<circle cx="30" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="66" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M35 40 Q48 14 61 40" fill="none" stroke="currentColor" stroke-width="2"/>`],
+  ["Jack with normals","Arrows touching a contact are switches. Plugging a cable in lifts them apart.",`<path d="M10 20 H60 M10 40 H60" stroke="currentColor" stroke-width="2"/><path d="M60 20 l8 -6 M60 40 l8 -6" stroke="currentColor" stroke-width="2"/><path d="M46 20 V30 l-3 -4 M46 30 l3 -4" stroke="currentColor" stroke-width="2" fill="none"/><rect x="74" y="8" width="10" height="44" fill="none" stroke="currentColor" stroke-width="2"/>`],
+  ["Test point","Small open circle with an E name. A pad you can measure or solder to.",`<path d="M10 30 H44" stroke="currentColor" stroke-width="2"/><circle cx="50" cy="30" r="6" fill="none" stroke="currentColor" stroke-width="2"/><text x="60" y="34" font-size="13" fill="currentColor">E</text>`]
+];
+function flowSvg(n){
+  const B=(x,y,w,t1,t2,kind)=>{ const f=kind==="t"?"var(--mag-soft)":kind==="a"?"var(--blue-soft)":"var(--surface)", s=kind==="t"?"var(--mag)":kind==="a"?"var(--blue)":"var(--line)", c=kind==="t"?"var(--mag)":kind==="a"?"var(--blue)":"var(--ink)"; return `<rect x="${x}" y="${y}" width="${w}" height="40" rx="6" fill="${f}" stroke="${s}"/><text x="${x+w/2}" y="${y+18}" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="600" font-size="15" fill="${c}">${t1}</text><text x="${x+w/2}" y="${y+33}" text-anchor="middle" font-family="Barlow,Arial,sans-serif" font-size="11.5" fill="var(--muted)">${t2}</text>`; };
+  const ch=[["Input",`J${n}03 line, J${n}01 mic`],["Preamp",`U${n}01B`],["Insert jack",`J${n}02 (stock: before EQ)`],["Low cut",`U${n}01A`],["Mute",`SW${n}06`],["EQ",`U${n}05, U${n}04A`],["Fader",`R${n}61`],["+10 dB stage",`U${n}03A`],["Pan to mix","subs, L-R"]];
+  let s=`<svg viewBox="0 0 340 ${ch.length*56+8}" role="img" aria-label="Channel signal flow" style="display:block;width:100%;height:auto"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker></defs>`;
+  ch.forEach((c,i)=>{ const y=6+i*56; s+=B(12,y,168,c[0],c[1]); if(i<ch.length-1) s+=`<line x1="96" y1="${y+40}" x2="96" y2="${y+53}" stroke="var(--muted)" marker-end="url(#ah)"/>`; });
+  const t=(i,lab,sub,k)=>{ const y=6+i*56; return `<path d="M180 ${y+20} H196" stroke="${k==="t"?"var(--mag)":"var(--blue)"}" stroke-dasharray="4 3"/>`+B(198,y,132,lab,sub,k); };
+  s+=t(6,`Tap A: E${n}07`,"ignores fader","t")+t(7,`Tap B: C${n}10`,"follows fader","t")+t(5,`E${n}11 aux 1–2`,"before EQ","a");
+  return s+"</svg>";
+}
+function renderLearn(){
+  document.getElementById("symList").innerHTML = SYMS.map(x=>`<div class="sym"><svg viewBox="0 0 96 60" style="color:var(--ink)" aria-hidden="true">${x[2]}</svg><div><b>${x[0]}</b><span class="small">${x[1]}</span></div></div>`).join("");
+  document.getElementById("flowSvg").innerHTML = flowSvg(S.ch);
+  document.getElementById("figList").innerHTML = FIGS.map(f=>`<figure class="fig">${f.id==="pcbMain"?`<div class="hscroll"><img src="${IMG[f.id]}" alt="${f.title}" loading="lazy"></div><button class="d t" data-fig="pcbMain" style="margin-top:6px">Open full screen</button>`:`<button class="imgbtn" data-fig="${f.id}" aria-label="Open ${f.title}"><img src="${IMG[f.id]}" alt="${f.title}" loading="lazy"></button>`}<figcaption><b style="color:var(--ink)">${f.title}.</b> ${f.cap}</figcaption></figure>`).join("");
+  const hr=()=>{ const m=parseFloat(document.getElementById("ifMax").value), el=document.getElementById("hrOut"); if(isNaN(m)){ el.innerHTML="<p class='small'>Enter a number.</p>"; return; } el.innerHTML = m>=20?`<p class="small"><span class="pill g">OK</span> Your interface won’t clip before the mixer does.</p>`:`<p class="small"><span class="pill r">Watch it</span> The interface clips ${(20-m).toFixed(1)} dB early. Keep peaks below ${(m-6).toFixed(1)} dBu.</p>`; };
+  document.getElementById("ifMax").oninput=hr; hr();
+  const rc=()=>{ const c=parseFloat(document.getElementById("rcC").value)*1e-6, r=parseFloat(document.getElementById("rcR").value); document.getElementById("rcOut").textContent = (c>0&&r>0)?`${(1/(2*Math.PI*r*c)).toFixed(2)} Hz (far below 20 Hz = fine)`:"enter values"; };
+  document.getElementById("rcC").oninput=rc; document.getElementById("rcR").oninput=rc; rc();
+}
+
+/* ---------- viewer ---------- */
+let zoom=1;
+function openFig(id){ const f=FIGS.find(x=>x.id===id); if(!f) return; const im=document.getElementById("vImg"); im.src=IMG[id]; im.alt=f.title; document.getElementById("vTitle").textContent=f.title; document.getElementById("vHint").textContent=f.cap+" Drag to move, +/− to zoom."; zoom = id==="pcbMain"?2.6:1.3; im.style.width=zoom*100+"vw"; document.getElementById("viewer").classList.add("on"); document.getElementById("vClose").focus(); }
+document.getElementById("vIn").onclick=()=>{ zoom=Math.min(6,zoom*1.4); document.getElementById("vImg").style.width=zoom*100+"vw"; };
+document.getElementById("vOut").onclick=()=>{ zoom=Math.max(1,zoom/1.4); document.getElementById("vImg").style.width=zoom*100+"vw"; };
+document.getElementById("vClose").onclick=()=>document.getElementById("viewer").classList.remove("on");
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ document.getElementById("viewer").classList.remove("on"); document.getElementById("sheet").classList.remove("on"); } });
+document.getElementById("pickCh").onclick=()=>{ location.hash="#today"; };
+
+/* ---------- routing ---------- */
+function setWhere(t){ document.getElementById("where").textContent = t||""; }
+const VIEWS=["today","step","learn","plan","safety"];
+function route(){
+  let v=(location.hash||"").replace("#",""); if(!VIEWS.includes(v)) v="today";
+  VIEWS.forEach(x=>document.getElementById("v-"+x).classList.toggle("on",x===v));
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current", a.dataset.v===v?"page":"false"));
+  if(v!=="step") document.getElementById("actionbar").style.display="none";
+  setWhere({today:"",learn:"Diagrams made simple",plan:"Choose your build",safety:"Before you open it"}[v]||"");
+  ({today:renderToday, step:renderStep, learn:renderLearn, plan:renderPlan, safety:renderSafety})[v]();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", route);
+route();
+
+if("serviceWorker" in navigator && /^https?:/.test(location.protocol)){
+  window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+</script>
+</body>
+</html>
